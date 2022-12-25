@@ -4,6 +4,10 @@
     "ts": {
       "script-ref": "ts.java",
       "description": "Script converting timestamps to dates and dates to timestamps"
+    },
+    "virtual_treads_demo": {
+      "script-ref": "virtual_treads_demo.java",
+      "description": "Download website content using virtual threads"
     }
   }
 }
