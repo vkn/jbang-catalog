@@ -1,0 +1,9 @@
+{
+  "catalogs": {},
+  "aliases": {
+    "ts": {
+      "script-ref": "ts.java",
+      "description": "Script converting timestamps to dates and dates to timestamps"
+    }
+  }
+}
