@@ -23,6 +23,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import static java.lang.System.out;
 
@@ -36,17 +37,28 @@ import static java.lang.System.out;
  * vt   //download all in parallel
  */
 public class virtual_threads_demo {
+    private static final Pattern TITLE = Pattern.compile("<title[^>]*?>(.*?)</title>");
 
     public static void main(String... args) throws Exception {
         var urls = List.of(
                 "http://stackoverflow.com/",
                 "http://www.google.com",
                 "http://www.cnn.com",
+                "http://www.lufthansa.com",
+                "http://www.boeing.com",
+                "http://www.airbus.com",
+                "http://www.apple.com",
+                "http://www.coca-cola.com",
+                "http://www.red-bull.com",
+                "http://www.foo-bar.com",
+                "https://weather.com/",
+                "https://www.redhat.com/",
                 "http://www.github.com",
                 "http://www.bbc.com",
                 "http://www.quarkus.io",
                 "http://www.oracle.com",
                 "http://www.amazon.com",
+                "https://www.etsy.com",
                 "http://www.microsoft.com",
                 "https://news.ycombinator.com/",
                 "https://www.docker.com/",
@@ -62,7 +74,7 @@ public class virtual_threads_demo {
         int concurrency = args.length > 0 ? Integer.parseInt(args[0]) : urls.size();
         var downloader = new WebSiteDownloader(concurrency);
         for (String url : urls) {
-            e.submit(() -> url + " " + downloader.getTitleAndLengths(url));
+            e.submit(() -> Thread.currentThread() + " " + url + " " + downloader.getTitleAndLengths(url));
         }
 
         out.printf("All %s submitted....%n", urls.size());
@@ -84,9 +96,16 @@ public class virtual_threads_demo {
 
         private String getTitleAndLengths(String url) {
             var content = getWebsiteContent(url);
-            int start = content.indexOf("<title>") + 7;
-            int end = content.indexOf("</title>");
-            return content.substring(start, end) + ", " + content.length() + " chars";
+            try {
+                var matcher = TITLE.matcher(content);
+                if (matcher.find()) {
+                    return matcher.group(1);
+                }
+                return "no title matched";
+            }
+            catch (Exception e) {
+                throw new RuntimeException(url + " could not be parsed for content " + content + "\n url " + url);
+            }
         }
 
         private String getWebsiteContent(String url) {
