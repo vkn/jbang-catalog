@@ -26,6 +26,7 @@ import static java.lang.System.*;
  *  ts clipboard
  *  ts c
  *  echo 686095200000 | ts
+ *  echo -e "-1 \n 0 \n 1" | ts
  *
  */
 public class ts {
