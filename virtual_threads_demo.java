@@ -35,7 +35,7 @@ import static java.lang.System.out;
  * vt 3 // download with 3 virtual threads
  * vt   //download all in parallel
  */
-public class virtual_treads_demo {
+public class virtual_threads_demo {
 
     public static void main(String... args) throws Exception {
         var urls = List.of(
