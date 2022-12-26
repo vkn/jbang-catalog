@@ -44,6 +44,9 @@ public class cfg {
 
     private static void processStdIn(Consumer<String> consumer) throws IOException {
         try (BufferedReader in = new BufferedReader(new InputStreamReader(System.in))) {
+            if (!in.ready()) {
+                return;
+            }            
             String line;
             while ((line = in.readLine()) != null) {
                 consumer.accept(line);
