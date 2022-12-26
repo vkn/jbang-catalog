@@ -5,6 +5,10 @@
       "script-ref": "ts.java",
       "description": "Script converting timestamps to dates and dates to timestamps"
     },
+    "cfg": {
+      "script-ref": "cfg.java",
+      "description": "Script converting config properties to env vars: a.b -> A_B and vs versa"
+    },
     "virtual_threads_demo": {
       "script-ref": "virtual_threads_demo.java",
       "description": "Download website content using virtual threads"
