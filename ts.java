@@ -64,6 +64,9 @@ public class ts {
         }
 
         try (BufferedReader in = new BufferedReader(new InputStreamReader(System.in))) {
+            if (!in.ready()) {
+                return;
+            }            
             String line;
             while ((line = in.readLine()) != null) {
                 processLine(line);
