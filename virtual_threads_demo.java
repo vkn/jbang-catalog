@@ -2,7 +2,8 @@
 //JAVA 19+
 
 //COMPILE_OPTIONS --enable-preview -source 19
-//RUNTIME_OPTIONS --enable-preview
+//RUNTIME_OPTIONS --enable-preview -XX:ActiveProcessorCount=1
+//JAVA_OPTIONS -Djava.util.concurrent.ForkJoinPool.common.parallelism=1
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -20,6 +21,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -39,45 +41,74 @@ import static java.lang.System.out;
 public class virtual_threads_demo {
     private static final Pattern TITLE = Pattern.compile("<title[^>]*?>(.*?)</title>");
 
+    private static final List<String> URLS = List.of(
+            "http://stackoverflow.com/",
+            "http://www.google.com",
+            "youtube.com",
+            "instagram.com",
+            "facebook.com",
+            "live.com",
+            "pinterest.com",
+            "reddit.com",
+            "jetbrains.com",
+            "goldmansachs.com",
+            "whatsapp.com",
+            "ebay.com",
+            "quora.com",
+            "roblox.com",
+            "duckduckgo.com",
+            "qq.com",
+            "zoom.us",
+            "discord.com",
+            "bing.com",
+            "samsung.com",
+            "linkedin.com",
+            "office.com",
+            "tiktok.com",
+            "netflix.com",
+            "msn.com",
+            "adidas.com",
+            "spotify.com",
+            "https://www.imdb.com/",
+            "http://www.cnn.com",
+            "http://www.lufthansa.com",
+            "http://www.boeing.com",
+            "http://www.airbus.com",
+            "http://www.apple.com",
+            "http://www.coca-cola.com",
+            "http://www.red-bull.com",
+            "http://www.foo-bar.com",
+            "https://weather.com/",
+            "https://www.redhat.com/",
+            "http://www.github.com",
+            "http://www.bbc.com",
+            "http://www.quarkus.io",
+            "http://www.oracle.com",
+            "http://www.amazon.com",
+            "https://www.etsy.com",
+            "http://www.microsoft.com",
+            "https://news.ycombinator.com/",
+            "https://www.docker.com/",
+            "https://el.wikipedia.org/wiki/%CE%A0%CF%8D%CE%BB%CE%B7:%CE%9A%CF%8D%CF%81%CE%B9%CE%B1",
+            "https://ubuntu.com/",
+            "http://www.yahoo.com"
+    );
+
     public static void main(String... args) throws Exception {
-        var urls = List.of(
-                "http://stackoverflow.com/",
-                "http://www.google.com",
-                "http://www.cnn.com",
-                "http://www.lufthansa.com",
-                "http://www.boeing.com",
-                "http://www.airbus.com",
-                "http://www.apple.com",
-                "http://www.coca-cola.com",
-                "http://www.red-bull.com",
-                "http://www.foo-bar.com",
-                "https://weather.com/",
-                "https://www.redhat.com/",
-                "http://www.github.com",
-                "http://www.bbc.com",
-                "http://www.quarkus.io",
-                "http://www.oracle.com",
-                "http://www.amazon.com",
-                "https://www.etsy.com",
-                "http://www.microsoft.com",
-                "https://news.ycombinator.com/",
-                "https://www.docker.com/",
-                "https://el.wikipedia.org/wiki/%CE%A0%CF%8D%CE%BB%CE%B7:%CE%9A%CF%8D%CF%81%CE%B9%CE%B1",
-                "https://ubuntu.com/",
-                "http://www.yahoo.com"
-        );
+        out.println("cpus " + Runtime.getRuntime().availableProcessors());
+        out.println("Common Pool Parallelism " + ForkJoinPool.getCommonPoolParallelism());
 //        var fileWriter = new FileWriter("results.txt");
         var consoleWriter = new ConsoleWriter();
-        var e = new Export(consoleWriter, urls.size());
+        var e = new Export(consoleWriter, URLS.size());
         var s = Instant.now();
 
-        int concurrency = args.length > 0 ? Integer.parseInt(args[0]) : urls.size();
+        int concurrency = args.length > 0 ? Integer.parseInt(args[0]) : URLS.size() * 2;
         var downloader = new WebSiteDownloader(concurrency);
-        for (String url : urls) {
-            e.submit(() -> Thread.currentThread() + " " + url + " " + downloader.getTitleAndLengths(url));
+        for (String url : URLS) {
+            e.submit(() -> Thread.currentThread() + " " + url + " " + downloader.getWebSite(url));
         }
 
-        out.printf("All %s submitted....%n", urls.size());
+        out.printf("All %s submitted....%n", URLS.size());
         e.isDone().get(1, TimeUnit.DAYS);
         out.printf("DONE in %s%n", Duration.between(s, Instant.now()).toMillis());
     }
@@ -90,45 +121,65 @@ public class virtual_threads_demo {
         public WebSiteDownloader(int concurrency) {
             semaphore = new Semaphore(concurrency);
             httpClient = HttpClient.newBuilder()
+                    .executor(Executors.newVirtualThreadPerTaskExecutor())
                     .followRedirects(HttpClient.Redirect.NORMAL)
                     .build();
         }
 
-        private String getTitleAndLengths(String url) {
-            var content = getWebsiteContent(url);
-            try {
-                var matcher = TITLE.matcher(content);
-                if (matcher.find()) {
-                    return matcher.group(1);
+        private record WebSite(String url, String content, long requestDuration) {
+
+            String title() {
+                try {
+                    var matcher = TITLE.matcher(content);
+                    if (matcher.find()) {
+                        return matcher.group(1);
+                    }
+                    return "no title matched";
                 }
-                return "no title matched";
+                catch (Exception e) {
+                    throw new RuntimeException(url + " could not be parsed for content " + content + "\n url " + url);
+                }
             }
-            catch (Exception e) {
-                throw new RuntimeException(url + " could not be parsed for content " + content + "\n url " + url);
+
+            @Override
+            public String toString() {
+                return title() + " done in " + requestDuration;
             }
         }
 
-        private String getWebsiteContent(String url) {
+        private WebSite getWebSite(String url) {
+            var uri = prepareUri(url);
+            var s = Instant.now();
             try {
                 semaphore.acquire();
                 var request = HttpRequest.newBuilder()
-                        .uri(URI.create(url))
-                        .build();
-                return httpClient.send(request, HttpResponse.BodyHandlers.ofString())
-                        .body();
+                        .uri(URI.create(uri))
 
-            }
-            catch (IOException e) {
-                throw new RuntimeException(e);
+                        .build();
+                out.println("start request " + uri);
+                var result = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
+                        .body();
+                return new WebSite(uri, result, Duration.between(s, Instant.now()).toMillis());
+
             }
             catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException(e);
             }
+            catch (Exception e) {
+                throw new RuntimeException("Request failed for uri " + uri, e);
+            }
             finally {
                 semaphore.release();
             }
 
+        }
+
+        private String prepareUri(String url) {
+            if (url.startsWith("http")) {
+                return url;
+            }
+            return "http://" + url;
         }
     }
 
