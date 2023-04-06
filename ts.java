@@ -35,7 +35,7 @@ import static picocli.CommandLine.*;
  *  echo 686095200000 | ts
  *  echo -e "-1 \n 0 \n 1" | ts
  */
-@Command(name = "ts", mixinStandardHelpOptions = true, version = "ts 0.1",
+@Command(name = "ts", mixinStandardHelpOptions = true, version = "ts 0.1", showDefaultValues = true,
         description = "Convert millis to datetime instant string")
 public class ts implements Callable<Integer> {
     private static final Pattern TS = Pattern.compile("(-?[0-9]+)");
@@ -57,7 +57,6 @@ public class ts implements Callable<Integer> {
 
 
     @Option(names = { "-h", "--help", "-?", "-help"}, usageHelp = true,
-
             description = usage)
     private boolean help;
 
@@ -163,6 +162,4 @@ public class ts implements Callable<Integer> {
             out.println(instant == null ? "not parsed" : instant.toString());
         }
     }
-
-
 }
