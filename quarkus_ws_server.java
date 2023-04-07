@@ -5,29 +5,55 @@
 //DEPS io.quarkus:quarkus-bom:${quarkus.version:2.16.6.Final}@pom
 //DEPS io.quarkus:quarkus-websockets
 //DEPS io.quarkus:quarkus-scheduler
+//DEPS io.quarkus:quarkus-picocli
 //Q:CONFIG quarkus.banner.enabled=false
 //Q:CONFIG quarkus.log.level=INFO
 //Q:CONFIG quarkus.http.port=8181
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import com.oracle.svm.core.annotate.Inject;
+import io.quarkus.scheduler.Scheduled;
+import picocli.CommandLine;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.websocket.OnClose;
-import javax.websocket.OnError;
-import javax.websocket.OnMessage;
-import javax.websocket.OnOpen;
+import javax.websocket.*;
 import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
-import javax.websocket.Session;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 
-import io.quarkus.scheduler.Scheduled;
 
+@CommandLine.Command(showDefaultValues = true)
+public class quarkus_ws_server implements Callable<Integer> {
+
+    @Inject
+    CommandLine.IFactory factory;
+
+    @CommandLine.Option(names = {"-p", "--port"}, description = "port", defaultValue = "8080")
+    Integer port;
+
+    @javax.inject.Inject
+    Server server;
+
+    public static void main(String[] args) {
+        int exitCode = new CommandLine(new quarkus_ws_server()).execute(args);
+        System.exit(exitCode);
+
+    }
+
+    @Override
+    public Integer call() throws Exception {
+        System.setProperty("quarkus.http.port", String.valueOf(port));
+        io.quarkus.runtime.Quarkus.run();
+        return 0;
+    }
+
+}
 
 @SuppressWarnings("resource")
 @ServerEndpoint("/chat/{username}")
 @ApplicationScoped
-public class quarkus_ws_server {
+class Server {
 
     Map<String, Session> sessions = new ConcurrentHashMap<>();
 
@@ -76,5 +102,4 @@ public class quarkus_ws_server {
             });
         });
     }
-
 }
