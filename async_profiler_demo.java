@@ -31,7 +31,7 @@ import static java.lang.System.out;
  * Demo how to start async profiler programmatically
  * with jbang
  */
-public class asyn_prof_demo {
+public class async_profiler_demo {
 
     public static void main(String... args) {
         var test = new SquaredSum();
